@@ -1,5 +1,8 @@
-from pyqtgraph.Qt import QtCore, QtGui
+
+from PyQt5.QtWidgets import QApplication
+from pyqtgraph.Qt import QtCore
 from pyqtgraph import Vector
+
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import pyqtgraph.exporters
@@ -21,6 +24,8 @@ import numpy as np
 
 from scipy import interpolate
 
+# os.environ['PYQTGRAPH_QT_LIB'] = 'PySide'
+
 do_parallel = False
 do_collapse = False
 sim_size = 125
@@ -30,7 +35,7 @@ index = 0
 sec = 30
 fps = 30
 
-collapse_interval = (fps*sec)/2#/3 #2 * fps
+collapse_interval = (fps*sec)/2 #/3 #2 * fps
 
 record = False
 #record = True
@@ -66,7 +71,7 @@ if record:
 pg.setConfigOptions(antialias=True)
 
 ## Create a GL View widget to display data
-app = QtGui.QApplication([])
+app = QApplication([])
 w = gl.GLViewWidget()
 w.show()
 w.setWindowTitle(f'{os.path.basename(__file__)} ... {sim_size}x{sim_size} ... {f"RENDERING {name}" if record else "PREVIEW"}')
@@ -624,7 +629,7 @@ timer.start(0)
 ## Start Qt event loop unless running in interactive mode.
 if __name__ == '__main__':
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+        QApplication.instance().exec_()
 
 
 ffmpeg(folder, name, fps)
