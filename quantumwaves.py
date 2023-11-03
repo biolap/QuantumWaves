@@ -92,13 +92,25 @@ w.setWindowTitle(f'{os.path.basename(__file__)} ... {sim_size}x{sim_size} ... {f
 # WF FOLLOW MOVEMENT
 w.setCameraPosition(distance=80)
 
-w.resize(res[0],res[1])
-w.setFixedSize(res[0],res[1])
+# w.resize(res[0],res[1])
+w.resize(int(res[0]), int(res[1]))
+
+# w.setFixedSize(res[0],res[1])
+w.setFixedSize(int(res[0]), int(res[1]))
 
  # move window in OS
 # this is overkill, I know
-w.move( app.desktop().screenGeometry().width()  / 2 - res[0] / 2,
-        app.desktop().screenGeometry().height() / 2 - res[1] / 2)
+# w.move( app.desktop().screenGeometry().width()  / 2 - res[0] / 2,
+#         app.desktop().screenGeometry().height() / 2 - res[1] / 2)
+
+screen_width = app.desktop().screenGeometry().width()
+x = int(screen_width / 2 - res[0] / 2)
+
+screen_height = app.desktop().screenGeometry().height()
+y = int(screen_height / 2 - res[1] / 2)
+
+w.move(x, y)
+
 
 @njit(cache=True)
 def cubic_interp1d(x0, x, y):
