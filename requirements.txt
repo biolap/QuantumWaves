@@ -1,0 +1,9 @@
+PyQt5
+pyqtgraph
+numpy
+pathlib
+math
+matplotlib
+numba
+scipy
+PyOpenGL

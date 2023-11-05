@@ -1,4 +1,3 @@
-
 from PyQt5.QtWidgets import QApplication
 from pyqtgraph.Qt import QtCore
 from pyqtgraph import Vector
@@ -6,25 +5,23 @@ from pyqtgraph import Vector
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import pyqtgraph.exporters
-import numpy as np
 import sys, os
 
-from PIL import Image
 from pathlib import Path
 from math import sqrt
 
 import matplotlib.pyplot as plt
 
 from numba import njit, prange
+from scipy import interpolate
 from schrodinger import schrodinger
 
 from time import time
 
 import numpy as np
 
-from scipy import interpolate
-
-# os.environ['PYQTGRAPH_QT_LIB'] = 'PySide'
+from scipy.interpolate import interp2d, RectBivariateSpline
+from scipy.interpolate import SmoothBivariateSpline, LinearNDInterpolator
 
 do_parallel = False
 do_collapse = False
@@ -92,21 +89,16 @@ w.setWindowTitle(f'{os.path.basename(__file__)} ... {sim_size}x{sim_size} ... {f
 #w.setCameraPosition(distance=100)
 
 # WF ENTANGLEMENT
-#w.setCameraPosition(distance=200)
+# w.setCameraPosition(distance=200)
 
 # WF FOLLOW MOVEMENT
 w.setCameraPosition(distance=80)
 
-# w.resize(res[0],res[1])
 w.resize(int(res[0]), int(res[1]))
-
-# w.setFixedSize(res[0],res[1])
 w.setFixedSize(int(res[0]), int(res[1]))
 
  # move window in OS
 # this is overkill, I know
-# w.move( app.desktop().screenGeometry().width()  / 2 - res[0] / 2,
-#         app.desktop().screenGeometry().height() / 2 - res[1] / 2)
 
 screen_width = app.desktop().screenGeometry().width()
 x = int(screen_width / 2 - res[0] / 2)
@@ -321,19 +313,48 @@ def make_wavelines(wavedata,
 
     return points, colors # (N, 3), (N, 4)
 
-def surf_smoothing(surf_data, smoothing=2):
 
+
+
+#def surf_smoothing(surf_data, smoothing=2):
+#
+#    X = surf_data.shape[0]
+#    Y = surf_data.shape[1]
+#
+#    x = np.arange(X)
+#    y = np.arange(Y)
+#    f = interpolate.interp2d(x, y, surf_data, kind='cubic')
+#
+#    xnew = np.linspace(0, X, X*smoothing)
+#    ynew = np.linspace(0, Y, Y*smoothing)
+#
+#    return f(xnew, ynew)
+
+def surf_smoothing(surf_data, smoothing=2):
     X = surf_data.shape[0]
     Y = surf_data.shape[1]
-
     x = np.arange(X)
     y = np.arange(Y)
-    f = interpolate.interp2d(x, y, surf_data, kind='cubic')
+    
+    values = surf_data.flatten()
+    f = LinearNDInterpolator(list(zip(x, y)), values, fill_value=0)
 
-    xnew = np.linspace(0, X, X*smoothing)
-    ynew = np.linspace(0, Y, Y*smoothing)
 
-    return f(xnew, ynew)
+    # points = np.column_stack((x, y))
+    # values = surf_data.flatten()
+    # interpolator = LinearNDInterpolator(points, values, fill_value=0)
+
+    xnew = np.linspace(0, X-1, X * smoothing)
+    ynew = np.linspace(0, Y-1, Y * smoothing)
+
+    xi, yi = np.meshgrid(xnew, ynew)
+  
+    return f((xi, yi))
+
+
+
+
+
 
 # background sphere
 ds = 100
@@ -493,7 +514,6 @@ def follow(pdf):
 def update():
     global surf, index, folder, last_time, start_time, record, fps, timer
 
-    t = index
 
     if index >= frames and record:
         app.quit()
@@ -516,13 +536,13 @@ def update():
         last_time = time()
 
     ##print('>>>', time()-lt)
-    lt = time()
+    time()
 
     d = sim.simulate_frame(debug=0)
     #global d
 
     #print('>>>', time()-lt)
-    lt = time()
+    time()
 
     zdata = d
     zdata = np.abs(zdata)**2 # complex square: amplitude -> density
@@ -531,15 +551,16 @@ def update():
         zdata = surf_smoothing(zdata, smoothing=surf_smooth)
 
     #print('>>>', time()-lt)
-    lt = time()
+    time()
 
-    cremap = lambda x: np.interp(x, [0,4], [0,1])
+    def cremap(x):
+        return np.interp(x, [0, 4], [0, 1])
     zcol = cmap(cremap(zdata))
     zcol[:,:,3] = zdata + .1
     zcol[:,:,3] *= 0.75
 
     #print('>>>', time()-lt)
-    lt = time()
+    time()
 
     dreal, dimag = d.real, np.flipud(d.imag)
     rpoints, realcolors = make_wavelines(dreal, axis=0, smoothing=do_smoothing)
@@ -549,7 +570,7 @@ def update():
     imagcolors[:,0] *= icol_bias # bias more blue
 
     #print('>>>', time()-lt)
-    lt = time()
+    time()
 
     if do_collapse:
         surf.setData(z=zdata/zdata.max(), colors=zcol)
@@ -562,7 +583,7 @@ def update():
     imag.setData(pos=ipoints, color=imagcolors)
 
     #print('>>>', time()-lt)
-    lt = time()
+    time()
 
     dazim = -.09#+.05#0.25
     delev = +.005#1#+.05/10#1*2*.5
@@ -582,7 +603,7 @@ def update():
     w.setCameraPosition(distance=w.opts['distance']+ddist)
 
     #print('>>>', time()-lt); print()
-    lt = time()
+    time()
 
     index += 1
 
@@ -593,7 +614,7 @@ def update():
         ):
 
         #selection = sim.collapse_wavefunction()
-        selection = sim.dual_collapse_wavefunction()
+        sim.dual_collapse_wavefunction()
 
 def ffmpeg(folder, name, FPS):
 
