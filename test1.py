@@ -1,23 +1,27 @@
 import os
 import sys
-from time import time
+from PyQt5.QtWidgets import QApplication
+from pyqtgraph.Qt import QtCore
+from pyqtgraph import Vector
 
-import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 
-from math import sqrt
-from pyqtgraph.Qt import QtCore
 from pathlib import Path
-from scipy import interpolate
+from math import sqrt
 from matplotlib import pyplot as plt
+
 from numba import njit, prange
-from PyQt5.QtWidgets import QApplication
+from scipy import interpolate
 
 from schrodinger import schrodinger
 
-is_parallel = False
-is_collapse = False
+from time import time
+
+import numpy as np
+
+do_parallel = False
+do_collapse = False
 sim_size = 125
 
 index = 0
@@ -44,10 +48,10 @@ folder = Path('C:/frames') / name
 res = np.array((1920, 1080))
 res = res if record else res // 1.25
 
-sim = schrodinger.Simulate(sim_size, collapse=is_collapse)
+sim = schrodinger.Simulate(sim_size, collapse=do_collapse)
 frames = fps * sec
 
-schrodinger.util.do_parallel = is_parallel
+schrodinger.util.do_parallel = do_parallel
 
 if record:
     do_smoothing = True
@@ -89,6 +93,9 @@ def cubic_interp1d(x0, x, y):
         float: The interpolated value at the point x0.
     """
     # Sort x and y arrays if x is not in ascending order
+    x = np.ascontiguousarray(x)
+    y = np.ascontiguousarray(y)
+    
     if np.any(np.diff(x) < 0):
         indexes = np.argsort(x)
         x = x[indexes]
@@ -193,7 +200,7 @@ def make_gridlines(X, Y, axis=0, stride=4, extend=3):
 
     return points, colors
 
-@njit(cache=True, parallel=is_parallel)
+@njit(cache=True, parallel=do_parallel)
 def make_wavelines(wavedata, P=5000, axis=0, stride=4, smoothing=True):
     """
     Generate a set of wave lines based on the given wavedata.
@@ -265,7 +272,7 @@ def make_wavelines(wavedata, P=5000, axis=0, stride=4, smoothing=True):
 
     return points, colors
 
-def surf_smoothing(surf_data: np.ndarray, smoothing: int = 2) -> np.ndarray:
+#def surf_smoothing(surf_data: np.ndarray, smoothing: int = 2) -> np.ndarray:
     """
     Generate a smoothed surface based on the given surface data using interpolation.
 
@@ -286,6 +293,21 @@ def surf_smoothing(surf_data: np.ndarray, smoothing: int = 2) -> np.ndarray:
     y_new = np.linspace(0, y_size, y_size * smoothing)
 
     return f(x_new, y_new)
+
+def surf_smoothing(surf_data, smoothing=2):
+
+    X = surf_data.shape[0]
+    Y = surf_data.shape[1]
+
+    x = np.arange(X)
+    y = np.arange(Y)
+    f = interpolate.interp2d(x, y, surf_data, kind='cubic')
+
+    xnew = np.linspace(0, X, X*smoothing)
+    ynew = np.linspace(0, Y, Y*smoothing)
+
+    return f(xnew, ynew)
+
 
 # background sphere
 ds = 100
@@ -405,44 +427,6 @@ if not folder.exists() and record:
 prev,i = 0,0
 
 def follow(pdf):
-    global prev, i
-
-    x, y = np.where(pdf == np.amax(pdf))
-    x = x[0]
-    y = y[0]
-
-    #print('>>> FOLLOWING', x,y)
-
-    x = x/pdf.shape[0]
-    y = y/pdf.shape[1]
-
-    x *= rescale
-    y *= rescale
-
-    x -= rescale/2
-    y -= rescale/2
-
-    xy = np.array([x,y])
-    cx = np.array([w.opts['center'].x(), w.opts['center'].y()])
-    dx = xy - cx
-
-    #print('>>> FOLLOWING', xy)
-
-    #ki = .05 # fast follow
-    ki = .01 # medium follow
-    #ki = .005 # slow follow
-    i += ki*(dx)
-
-    new_xy = i
-
-    #d  = .005*((dx) - prev)
-    #new_xy += d
-
-    prev = (new_xy).copy()
-
-    w.opts['center'] = np.vectorize(new_xy[0], new_xy[1], 0)
-
-def follow(pdf):
     """
     Follows a given probability density function (pdf) by updating the x and y coordinates.
 
@@ -470,13 +454,23 @@ def follow(pdf):
     - The function assumes that the global variables prev, i, x_coords, y_coords, x, y, xy, center_xy, dx, and ki have been defined before calling the follow function.
     """
     global prev, i
-    x_coords, y_coords = np.where(pdf == np.amax(pdf))
-    x = x_coords[0] / pdf.shape[0] * rescale - rescale / 2
-    y = y_coords[0] / pdf.shape[1] * rescale - rescale / 2
+
+    x, y = np.where(pdf == np.amax(pdf))
+    x = x[0]
+    y = y[0]
+
+    x = x / pdf.shape[0]
+    y = y / pdf.shape[1]
+
+    x *= rescale
+    y *= rescale
+
+    x -= rescale / 2
+    y -= rescale / 2
 
     xy = np.array([x, y])
-    center_xy = np.array([w.opts['center'].x(), w.opts['center'].y()])
-    dx = xy - center_xy
+    cx = np.array([w.opts['center'].x(), w.opts['center'].y()])
+    dx = xy - cx
 
     ki = 0.01  # medium follow
     i += ki * dx
@@ -485,7 +479,7 @@ def follow(pdf):
 
     prev = new_xy.copy()
 
-    return np.vectorize(new_xy[0]), np.vectorize(new_xy[1]), 0
+    w.opts['center'] = Vector(new_xy[0], new_xy[1], 0)
 
 def update():
     """
@@ -514,21 +508,21 @@ def update():
     Returns:
         None
     """
-    global surf, index, folder, start_time, record, fps, timer
+    global surf, index, folder, last_time, start_time, record, fps, timer
 
     if index >= frames and record:
         app.quit()
 
     if record:
-        ETA = (time() - start_time) * (frames - index)
+        ETA = (time() - last_time) * (frames - index)
         ETA = int(ETA / 60), int(round((ETA % 60)))
-        start_time = time()
+        last_time = time()
 
         print(index, 'ETA', ETA)
 
         w.grabFrameBuffer().save(str(folder / f'{name}_{index}.png'))
     else:
-        print(index, 'TIME', time() - start_time, 's', 'ELAPSED', index / fps, 's')
+        print(index, 'TIME', time() - last_time, 's', 'ELAPSED', index / fps, 's')
         start_time = time()
 
     time()
@@ -540,7 +534,7 @@ def update():
     zdata = np.abs(d) ** 2
 
     if do_smoothing:
-        zdata = surf_smoothing(zdata, smoothing=surface_smoothness)
+        zdata = surf_smoothing(zdata, smoothing=surf_smooth)
 
     time()
 
@@ -571,7 +565,7 @@ def update():
 
     time()
 
-    if is_collapse:
+    if do_collapse:
         surf.setData(z=zdata / zdata.max(), colors=zcol)
         surf.setData(z=3 * zdata / zdata.max(), colors=zcol)
     else:

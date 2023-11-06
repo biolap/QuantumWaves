@@ -1,3 +1,5 @@
+import os
+import sys
 from PyQt5.QtWidgets import QApplication
 from pyqtgraph.Qt import QtCore
 from pyqtgraph import Vector
@@ -5,7 +7,6 @@ from pyqtgraph import Vector
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import pyqtgraph.exporters
-import sys, os
 
 from pathlib import Path
 from math import sqrt
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt
 
 from numba import njit, prange
 from scipy import interpolate
+
 from schrodinger import schrodinger
 
 from time import time
@@ -316,40 +318,40 @@ def make_wavelines(wavedata,
 
 
 
-#def surf_smoothing(surf_data, smoothing=2):
-#
-#    X = surf_data.shape[0]
-#    Y = surf_data.shape[1]
-#
-#    x = np.arange(X)
-#    y = np.arange(Y)
-#    f = interpolate.interp2d(x, y, surf_data, kind='cubic')
-#
-#    xnew = np.linspace(0, X, X*smoothing)
-#    ynew = np.linspace(0, Y, Y*smoothing)
-#
-#    return f(xnew, ynew)
-
 def surf_smoothing(surf_data, smoothing=2):
+
     X = surf_data.shape[0]
     Y = surf_data.shape[1]
+
     x = np.arange(X)
     y = np.arange(Y)
+    f = interpolate.interp2d(x, y, surf_data, kind='cubic')
+
+    xnew = np.linspace(0, X, X*smoothing)
+    ynew = np.linspace(0, Y, Y*smoothing)
+
+    return f(xnew, ynew)
+
+#def surf_smoothing(surf_data, smoothing=2):
+#    X = surf_data.shape[0]
+#    Y = surf_data.shape[1]
+#    x = np.arange(X)
+#    y = np.arange(Y)
     
-    values = surf_data.flatten()
-    f = LinearNDInterpolator(list(zip(x, y)), values, fill_value=0)
+#    values = surf_data.flatten()
+#    f = LinearNDInterpolator(list(zip(x, y)), values, fill_value=0)
 
 
     # points = np.column_stack((x, y))
     # values = surf_data.flatten()
     # interpolator = LinearNDInterpolator(points, values, fill_value=0)
 
-    xnew = np.linspace(0, X-1, X * smoothing)
-    ynew = np.linspace(0, Y-1, Y * smoothing)
+#    xnew = np.linspace(0, X-1, X * smoothing)
+#    ynew = np.linspace(0, Y-1, Y * smoothing)
 
-    xi, yi = np.meshgrid(xnew, ynew)
+#    xi, yi = np.meshgrid(xnew, ynew)
   
-    return f((xi, yi))
+#    return f((xi, yi))
 
 
 
