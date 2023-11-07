@@ -1,5 +1,11 @@
 import os
 import sys
+
+import scipy.sparse as sp
+from scipy.interpolate import griddata
+from scipy.interpolate import RegularGridInterpolator as RGI
+from scipy.interpolate import bisplrep, bisplev
+from matplotlib import cm
 from PyQt5.QtWidgets import QApplication
 from pyqtgraph.Qt import QtCore
 from pyqtgraph import Vector
@@ -272,42 +278,17 @@ def make_wavelines(wavedata, P=5000, axis=0, stride=4, smoothing=True):
 
     return points, colors
 
-#def surf_smoothing(surf_data: np.ndarray, smoothing: int = 2) -> np.ndarray:
-    """
-    Generate a smoothed surface based on the given surface data using interpolation.
-
-    Parameters:
-        surf_data (np.ndarray): The input surface data as a numpy array.
-        smoothing (int, optional): The level of smoothing to apply to the surface. Defaults to 2.
-
-    Returns:
-        np.ndarray: The smoothed surface data as a numpy array.
-    """
-    x_size, y_size = surf_data.shape
-
-    x = np.arange(x_size)
-    y = np.arange(y_size)
-    f = interpolate.interp2d(x, y, surf_data, kind='cubic')
-
-    x_new = np.linspace(0, x_size, x_size * smoothing)
-    y_new = np.linspace(0, y_size, y_size * smoothing)
-
-    return f(x_new, y_new)
-
 def surf_smoothing(surf_data, smoothing=2):
-
     X = surf_data.shape[0]
     Y = surf_data.shape[1]
-
-    x = np.arange(X)
-    y = np.arange(Y)
-    f = interpolate.interp2d(x, y, surf_data, kind='cubic')
+    x, y = np.arange(X), np.arange(Y)
+  
+    f = interpolate.RectBivariateSpline(x, y, surf_data, kx=3, ky=3)
 
     xnew = np.linspace(0, X, X*smoothing)
     ynew = np.linspace(0, Y, Y*smoothing)
-
+   
     return f(xnew, ynew)
-
 
 # background sphere
 ds = 100
@@ -560,8 +541,8 @@ def update():
     rpoints, realcolors = make_wavelines(dreal, axis=0, smoothing=do_smoothing)
     ipoints, imagcolors = make_wavelines(dimag, axis=1, smoothing=do_smoothing)
 
-    realcolors[:, 0:3:2] *= rhzn_colors
-    imagcolors[:, 0] *= ihzn_colors
+    realcolors[:, 0:3:2] *= rcol_bias
+    imagcolors[:, 0] *= icol_bias
 
     time()
 
@@ -639,3 +620,4 @@ if __name__ == '__main__':
         QApplication.instance().exec_()
 
 convert_images_to_video(folder, name, fps)
+
