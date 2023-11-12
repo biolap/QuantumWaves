@@ -1,9 +1,9 @@
 PyQt5==5.15.10
 pyqtgraph==0.13.3
-pip install numpy==1.26.1
-pip install pathlib==1.0.1
+numpy==1.26.1
+pathlib==1.0.1
 math
-matplotlib
-numba
-scipy
-PyOpenGL
+matplotlib==3.8.1
+numba==0.58.1
+scipy==1.11.3
+PyOpenGL==3.1.7
