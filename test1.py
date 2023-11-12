@@ -1,30 +1,20 @@
 import os
 import sys
+import pyqtgraph as pg
+import pyqtgraph.opengl as gl
+import numpy as np
 
-import scipy.sparse as sp
-from scipy.interpolate import griddata
-from scipy.interpolate import RegularGridInterpolator as RGI
-from scipy.interpolate import bisplrep, bisplev
-from matplotlib import cm
 from PyQt5.QtWidgets import QApplication
 from pyqtgraph.Qt import QtCore
 from pyqtgraph import Vector
-
-import pyqtgraph as pg
-import pyqtgraph.opengl as gl
-
 from pathlib import Path
 from math import sqrt
 from matplotlib import pyplot as plt
-
 from numba import njit, prange
 from scipy import interpolate
-
-from schrodinger import schrodinger
-
 from time import time
 
-import numpy as np
+from schrodinger import schrodinger
 
 do_parallel = False
 do_collapse = False
