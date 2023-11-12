@@ -1,7 +1,7 @@
-PyQt5
-pyqtgraph
-numpy
-pathlib
+PyQt5==5.15.10
+pyqtgraph==0.13.3
+pip install numpy==1.26.1
+pip install pathlib==1.0.1
 math
 matplotlib
 numba
