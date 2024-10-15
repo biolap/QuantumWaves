@@ -1,6 +1,7 @@
-numpy>=1.21.2
-pyqt5==5.15.6
-pyqtgraph==0.12.2
-matplotlib>=3.4.3
-numba>=0.54.1
-scipy>=1.7.1
+numpy
+scipy
+matplotlib
+PyQt5
+pyqtgraph
+pyopengl
+numba
